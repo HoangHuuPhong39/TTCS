@@ -53,7 +53,7 @@ Hệ thống hoạt động hoàn toàn **On-Premise / Local**, bảo đảm tí
 
 ### 1. Clone repository
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
+git clone [https://github.com/<your-username>/<repo-name>.git](https://github.com/HoangHuuPhong39/TTCS.git)
 cd <repo-name>
 ```
 
