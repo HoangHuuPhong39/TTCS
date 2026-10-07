@@ -1,0 +1,129 @@
+# SOC PLAYBOOK - TÀI LIỆU VẬN HÀNH TIÊU CHUẨN
+
+## KỊCH BẢN 1: TẤN CÔNG DÒ ĐOÁN MẬT KHẨU (BRUTE-FORCE)
+- Dấu hiệu (IoC): 
+  + Windows: Event ID 4625 (Logon Failed) xuất hiện liên tục > 10 lần/phút.
+  + Linux: Log "Failed password for" xuất hiện trong /var/log/auth.log.
+- Quy trình điều tra (Investigation):
+  1. Kiểm tra IP nguồn (Source IP) trên hệ thống Threat Intelligence (như AbuseIPDB).
+  2. Truy vấn SIEM để xem có Event ID 4624 (Logon Success) từ IP đó ngay sau log thất bại hay không.
+- Hành động ứng phó (Remediation):
+  + Nếu có đăng nhập thành công: Lập tức cô lập máy chủ (Isolate Host) khỏi mạng và reset mật khẩu tài khoản bị thỏa hiệp.
+  + Nếu chỉ có đăng nhập thất bại: Thực hiện Block IP trên Firewall.
+
+## KỊCH BẢN 2: LEO THANG ĐẶC QUYỀN (PRIVILEGE ESCALATION)
+- Dấu hiệu (IoC): 
+  + Windows: Event ID 4720 (Tạo tài khoản mới) đi kèm với Event ID 4732 (Thêm tài khoản vào nhóm Administrators).
+- Quy trình điều tra (Investigation):
+  1. Xác minh với người quản trị hệ thống (System Admin) xem việc tạo tài khoản này có nằm trong lịch trình bảo trì không.
+  2. Kiểm tra các tiến trình (Processes) được khởi tạo bởi tài khoản mới này.
+- Hành động ứng phó (Remediation):
+  + Nếu là tài khoản trái phép (Backdoor): Chạy lệnh "net user [Tên_Tài_Khoản] /delete" để xóa tài khoản.
+  + Rà soát lại toàn bộ hệ thống bằng phần mềm Anti-Virus.
+
+## KỊCH BẢN 3: XÓA DẤU VẾT LOG HỆ THỐNG (DEFENSE EVASION)
+- Dấu hiệu (IoC): 
+  + Windows: Event ID 1102 (The audit log was cleared).
+  + Lệnh Command Line: wevtutil cl Security.
+- Quy trình điều tra (Investigation):
+  1. Đây là chỉ báo rủi ro ở mức nghiêm trọng (CRITICAL).
+  2. Kiểm tra xem tài khoản nào (User) đã thực hiện hành động xóa log.
+- Hành động ứng phó (Remediation):
+  + Coi máy chủ này đã bị chiếm quyền hoàn toàn (Compromised).
+  + Kích hoạt quy trình Ứng cứu sự cố mức cao nhất (Tier 3 Incident Response).
+
+## KỊCH BẢN 4: TẤN CÔNG MÃ ĐỘC TỐNG TIỀN (RANSOMWARE)
+- Dấu hiệu (IoC): 
+  + Đột biến thay đổi file: Hàng loạt file bị đổi đuôi (ví dụ: .encrypted, .locked).
+  + Xuất hiện file README.txt hoặc DECRYPT_INFO.html ở nhiều thư mục.
+  + Mức sử dụng CPU/Disk IO tăng vọt không rõ nguyên nhân.
+- Quy trình điều tra (Investigation):
+  1. Xác định ngay tiến trình (Process) nào đang thực hiện hành vi ghi/đọc file hàng loạt.
+  2. Kiểm tra log mạng xem có kết nối bất thường ra bên ngoài để lấy key mã hóa không.
+- Hành động ứng phó (Remediation):
+  + HÀNH ĐỘNG KHẨN CẤP: Rút cáp mạng hoặc cô lập (Isolate) máy chủ khỏi mạng nội bộ ngay lập tức để tránh lây lan qua SMB (Lateral Movement).
+  + KHÔNG tắt nguồn máy tính (để giữ lại bằng chứng trên RAM để phân tích bộ nhớ - Memory Forensics).
+
+## KỊCH BẢN 5: CHẠY LỆNH ĐỘC HẠI QUA POWERSHELL (MALICIOUS POWERSHELL)
+- Dấu hiệu (IoC): 
+  + Windows: Event ID 4104 (PowerShell Script Block Logging).
+  + Chứa các tham số đáng ngờ: "-EncodedCommand", "-ep bypass", "DownloadString", "Invoke-Expression" (IEX).
+- Quy trình điều tra (Investigation):
+  1. Giải mã (Decode) chuỗi Base64 trong lệnh PowerShell để xem mã độc đang làm gì.
+  2. Phân tích URL hoặc IP mà script đang cố gắng kết nối tới tải payload.
+- Hành động ứng phó (Remediation):
+  + Terminate (kill) ngay tiến trình powershell.exe đang chạy.
+  + Chặn IP/Domain độc hại trên Tường lửa (Firewall).
+
+## KỊCH BẢN 6: ĐÁNH CẮP THÔNG TIN XÁC THỰC (CREDENTIAL DUMPING - MIMIKATZ)
+- Dấu hiệu (IoC): 
+  + Sysmon Event ID 10 (Process Access) ghi nhận một tiến trình lạ yêu cầu quyền truy cập vào tiến trình lõi "lsass.exe".
+  + Dấu hiệu file "procdump.exe" chạy với tham số "-ma lsass.exe".
+- Quy trình điều tra (Investigation):
+  1. Đây là dấu hiệu kẻ tấn công muốn lấy mật khẩu dạng rõ (Clear-text password) từ RAM.
+  2. Rà soát xem có tài khoản Quản trị (Admin) nào đã đăng nhập vào máy này gần đây không.
+- Hành động ứng phó (Remediation):
+  + Yêu cầu Reset mật khẩu toàn bộ các user có phiên làm việc trên máy tính đó.
+  + Cô lập máy chủ để gỡ bỏ công cụ Dump.
+
+## KỊCH BẢN 7: KẾT NỐI MÁY CHỦ ĐIỀU KHIỂN (COMMAND & CONTROL - C2)
+- Dấu hiệu (IoC): 
+  + Firewall/Suricata báo cáo lưu lượng mạng từ máy nội bộ kết nối ra các IP/Domain có điểm uy tín thấp (Malicious IP).
+  + Beaconing: Mạng liên tục gửi các gói tin nhỏ ra ngoài theo chu kỳ thời gian cố định (ví dụ: cứ 5 giây gửi 1 lần).
+- Quy trình điều tra (Investigation):
+  1. Kiểm tra tiến trình nào trên máy nội bộ đang mở kết nối đó ra ngoài.
+  2. Kiểm tra DNS Log để xem IP đó phân giải ra Domain nào.
+- Hành động ứng phó (Remediation):
+  + Đưa IP/Domain của C2 Server vào danh sách đen (Blacklist) trên Tường lửa biên.
+  + Quét toàn bộ máy tính bị nhiễm bằng phần mềm EDR/Antivirus.
+
+## KỊCH BẢN 8: PHÁ HOẠI TUYẾN PHÒNG THỦ (DISABLE SECURITY TOOLS)
+- Dấu hiệu (IoC): 
+  + Lệnh Command Line: "netsh advfirewall set allprofiles state off" hoặc "sc stop WinDefend".
+  + Wazuh cảnh báo Event ID 4950 (Windows Firewall settings changed).
+- Quy trình điều tra (Investigation):
+  1. Kẻ tấn công thường tắt Tường lửa hoặc Antivirus ngay trước khi thả mã độc.
+  2. Kiểm tra xem User nào thực hiện lệnh này và đăng nhập từ IP nào.
+- Hành động ứng phó (Remediation):
+  + Bật lại ngay lập tức Tường lửa bằng lệnh: "netsh advfirewall set allprofiles state on".
+  + Kiểm tra toàn diện hệ thống xem có tập tin mã độc nào vừa được tải xuống không.
+
+## KỊCH BẢN 9: TẤN CÔNG ỨNG DỤNG WEB (SQL INJECTION / XSS)
+- Dấu hiệu (IoC): 
+  + Log Web Server (Apache/Nginx/IIS) xuất hiện các ký tự lạ trên URL như: ' OR 1=1, <script>, UNION SELECT.
+  + Server trả về mã lỗi HTTP 500 liên tục.
+- Quy trình điều tra (Investigation):
+  1. Phân tích mã phản hồi (HTTP Status Code) xem tấn công đã thành công chưa (Nếu mã 200 OK và dung lượng phản hồi lớn -> Có thể dữ liệu đã bị lấy cắp).
+- Hành động ứng phó (Remediation):
+  + Khóa IP nguồn trên Web Application Firewall (WAF) hoặc Cloudflare.
+  + Gửi báo cáo cho đội Phát triển phần mềm (DevOps/DevSecOps) để vá lỗ hổng trong code.
+
+## KỊCH BẢN 10: TẤN CÔNG TỪ CHỐI DỊCH VỤ (DDOS/DOS)
+- Dấu hiệu (IoC): 
+  + Lưu lượng mạng (Traffic) tăng đột biến gấp nhiều lần mức thông thường.
+  + Wazuh Agent báo lỗi: "Agent event queue is flooded".
+  + CPU, RAM máy chủ đạt 100%, trang web nội bộ không thể truy cập (Time-out).
+- Quy trình điều tra (Investigation):
+  1. Kiểm tra xem đó là cuộc tấn công lớp mạng (Layer 4 - SYN Flood) hay lớp ứng dụng (Layer 7 - HTTP Flood).
+- Hành động ứng phó (Remediation):
+  + Kích hoạt tính năng Anti-DDoS hoặc Rate Limiting trên Router/Firewall.
+  + Tạm thời bật chế độ "I am under attack" nếu đang sử dụng CDN (như Cloudflare).
+
+## KỊCH BẢN 11: ĐĂNG NHẬP VỊ TRÍ BẤT THƯỜNG (IMPOSSIBLE TRAVEL)
+- Dấu hiệu (IoC): 
+  + Cùng một tài khoản đăng nhập thành công từ 2 quốc gia khác nhau (Ví dụ: Việt Nam và Nga) chỉ trong vòng chưa đầy 1 tiếng.
+- Quy trình điều tra (Investigation):
+  1. Xác minh IP nguồn của 2 lần đăng nhập.
+  2. Liên hệ trực tiếp với nhân sự sở hữu tài khoản để xem họ có đang dùng VPN hoặc đi công tác không.
+- Hành động ứng phó (Remediation):
+  + Nếu là truy cập trái phép: Tạm khóa (Lock) tài khoản AD/Email.
+  + Thu hồi mọi phiên làm việc (Revoke Sessions) và bắt buộc bật xác thực 2 bước (2FA/MFA).
+
+## KỊCH BẢN 12: DÒ QUÉT CỔNG MẠNG (PORT SCANNING)
+- Dấu hiệu (IoC): 
+  + Hệ thống phát hiện một IP liên tục kết nối tới hàng chục, hàng trăm port khác nhau trên máy chủ trong thời gian ngắn (TCP SYN Scan).
+- Quy trình điều tra (Investigation):
+  1. Xác định IP nguồn là từ ngoài Internet hay từ một máy nội bộ khác đang bị nhiễm mã độc đi dò quét ngang (Lateral Movement).
+- Hành động ứng phó (Remediation):
+  + Thêm quy tắc (Rule) trên Firewall chặn mọi kết nối từ IP nguồn quét mạng trong vòng 24 giờ.
+  + Kiểm tra lại Tường lửa xem có dịch vụ nào đang bị cấu hình mở nhầm (Exposed) ra ngoài Internet không.

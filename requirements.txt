@@ -1,0 +1,25 @@
+# ==========================================
+# KMA SOC DASHBOARD - DEPENDENCIES
+# ==========================================
+
+# 1. Web Framework
+Flask>=2.0.0
+
+# 2. Xử lý API & Mạng
+requests>=2.25.1
+urllib3>=1.26.5
+
+# 3. Xử lý giao diện & Báo cáo
+Markdown>=3.3.4
+
+# 4. Cấu hình môi trường
+python-dotenv>=1.0.0
+
+# 5. Tích hợp AI (LangChain + Local LLM)
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+
+# 6. Local LLM & RAG
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+langchain-text-splitters>=0.0.1

@@ -1,0 +1,32 @@
+# 1. Thông tin nhạy cảm và bảo mật
+.env
+*.pem
+*.key
+
+# 2. Cơ sở dữ liệu và cache cục bộ
+chroma_db/
+*.db
+*.sqlite3
+
+# 3. Log files
+*.log
+soc_dashboard.log
+
+# 4. Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# 5. IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 6. Báo cáo HTML sinh ra trong lúc chạy runtime (nếu muốn)
+reports/*.html

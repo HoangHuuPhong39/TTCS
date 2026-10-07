@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMA SOC Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #060b18;
+            --bg-secondary: #0a0f1e;
+            --bg-card: rgba(255,255,255,0.025);
+            --border: rgba(255,255,255,0.08);
+            --border-hover: rgba(255,255,255,0.16);
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+            --blue: #3b82f6;
+            --purple: #7c3aed;
+            --red: #ef4444;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --orange: #f97316;
+            --font-main: 'Be Vietnam Pro', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-main); margin: 0; font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+        /* Focus accessibility */
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 2px solid #3b82f6 !important;
+            outline-offset: 2px !important;
+        }
+
+        /* === PURE CSS LOADING SPINNER === */
+        .loading-spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(255,255,255,0.25);
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin-loader 0.75s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin-loader { to { transform: rotate(360deg); } }
+
+        /* === SCROLLBAR === */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+        /* === GLASS CARDS === */
+        .glass { background: rgba(255,255,255,0.025); backdrop-filter: blur(12px); border: 1px solid var(--border); }
+        .glass-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        }
+        .glass-card:hover { border-color: var(--border-hover); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+        /* === GLOW BORDERS === */
+        .glow-blue  { box-shadow: 0 0 20px rgba(59,130,246,0.1);  border-top: 2px solid rgba(59,130,246,0.5); }
+        .glow-red   { box-shadow: 0 0 20px rgba(239,68,68,0.12);   border-top: 2px solid rgba(239,68,68,0.5); }
+        .glow-emerald { box-shadow: 0 0 20px rgba(16,185,129,0.1); border-top: 2px solid rgba(16,185,129,0.5); }
+        .glow-purple  { box-shadow: 0 0 20px rgba(139,92,246,0.1); border-top: 2px solid rgba(139,92,246,0.5); }
+        .glow-amber   { box-shadow: 0 0 20px rgba(245,158,11,0.1); border-top: 2px solid rgba(245,158,11,0.5); }
+
+        /* === SIDEBAR === */
+        .sidebar { background: rgba(6,10,20,0.94); backdrop-filter: blur(20px); border-right: 1px solid var(--border); width: 240px; flex-shrink: 0; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 13.5px; font-weight: 500; color: #94a3b8; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); color: #f1f5f9; }
+        .nav-item.active { background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(139,92,246,0.14)); color: #fff; border-left: 3px solid var(--blue); padding-left: 11px; }
+        .nav-indicator { width: 6px; height: 6px; border-radius: 50%; background: #475569; transition: all 0.2s; flex-shrink: 0; }
+        .nav-item:hover .nav-indicator { background: #94a3b8; }
+        .nav-item.active .nav-indicator { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+        .nav-section { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.14em; padding: 0 14px; margin: 16px 0 6px; }
+
+        /* === HEADER === */
+        .topbar { background: rgba(6,10,20,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+
+        /* === BUTTONS === */
+        .btn-primary { background: linear-gradient(135deg, var(--blue), var(--purple)); border: 1px solid rgba(139,92,246,0.3); box-shadow: 0 0 20px rgba(99,102,241,0.25); color: #fff; font-weight: 700; border-radius: 10px; padding: 9px 18px; font-size: 13px; cursor: pointer; transition: all 0.25s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary:hover { box-shadow: 0 0 30px rgba(99,102,241,0.45); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: wait; transform: none !important; }
+        .btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: #cbd5e1; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.08); color: #ffffff; border-color: var(--border-hover); }
+        .btn-ghost:disabled { opacity: 0.4; cursor: wait; }
+
+        /* === QUICK ACTION BUTTONS === */
+        .quick-btn { border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px; }
+        .quick-btn-splunk { background: rgba(249,115,22,0.1); color: #fb923c; border-color: rgba(249,115,22,0.25); }
+        .quick-btn-splunk:hover { background: rgba(249,115,22,0.2); box-shadow: 0 0 14px rgba(249,115,22,0.2); }
+        .quick-btn-kql { background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+        .quick-btn-kql:hover { background: rgba(59,130,246,0.2); box-shadow: 0 0 14px rgba(59,130,246,0.2); }
+        .quick-btn-copy { background: rgba(16,185,129,0.1); color: #34d399; border-color: rgba(16,185,129,0.25); }
+        .quick-btn-copy:hover { background: rgba(16,185,129,0.2); box-shadow: 0 0 14px rgba(16,185,129,0.2); }
+
+        /* === TERMINAL / LOG STREAM === */
+        .log-stream { background: #020509; border: 1px solid rgba(16,185,129,0.12); border-radius: 10px; font-family: 'Cascadia Code','JetBrains Mono','Fira Code',monospace; font-size: 12.5px; overflow-y: auto; }
+        .log-entry { padding: 7px 14px; border-bottom: 1px solid rgba(255,255,255,0.035); display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+        .log-entry:hover { background: rgba(255,255,255,0.025); }
+        .log-entry:last-child { border-bottom: none; }
+        .level-badge { padding: 2px 8px; border-radius: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; flex-shrink: 0; }
+        .level-critical { background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .level-high     { background: rgba(249,115,22,0.18); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+        .level-medium   { background: rgba(245,158,11,0.18); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .level-low      { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+        .terminal-cursor { display: inline-block; width: 7px; height: 13px; background: #10b981; animation: blink 1s step-end infinite; vertical-align: middle; }
+        @keyframes blink { 50%{ opacity:0 } }
+
+        /* === TOAST === */
+        .toast-container { position: fixed; top: 72px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { pointer-events: auto; background: rgba(8,13,28,0.96); backdrop-filter: blur(20px); border: 1px solid rgba(239,68,68,0.2); border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 12px; min-width: 300px; max-width: 400px; box-shadow: 0 10px 36px rgba(0,0,0,0.6); animation: toastIn 0.35s cubic-bezier(0.16,1,0.3,1); }
+        .toast-success { border-color: rgba(16,185,129,0.2); border-left-color: #10b981; }
+        .toast.toast-exit { animation: toastOut 0.25s ease forwards; }
+        @keyframes toastIn  { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
+        @keyframes toastOut { from{transform:translateX(0);opacity:1} to{transform:translateX(110%);opacity:0} }
+
+        /* === ANIMATIONS === */
+        .fade-up { animation: fadeUp 0.5s cubic-bezier(.4,0,.2,1) both; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+        .s1{animation-delay:.04s} .s2{animation-delay:.08s} .s3{animation-delay:.12s} .s4{animation-delay:.16s} .s5{animation-delay:.20s} .s6{animation-delay:.24s}
+        .pulse-live { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0%{box-shadow:0 0 0 0 rgba(239,68,68,0.7)} 70%{box-shadow:0 0 0 6px rgba(239,68,68,0)} }
+        .bg-grid { background-image: linear-gradient(rgba(59,130,246,0.02) 1px,transparent 1px), linear-gradient(90deg,rgba(59,130,246,0.02) 1px,transparent 1px); background-size: 44px 44px; }
+
+        /* === ALERT DETAIL (expandable) === */
+        .alert-detail { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(.4,0,.2,1), opacity 0.3s; opacity: 0; }
+        .alert-detail.open { max-height: 900px; opacity: 1; }
+
+        /* === TP/FP EVAL BUTTONS === */
+        .eval-btn { padding: 4px 10px; border-radius: 6px; font-size: 10.5px; font-weight: 800; cursor: pointer; border: 1px solid transparent; text-transform: uppercase; letter-spacing: 0.04em; transition: all 0.18s; }
+        .eval-btn-tp { background: rgba(16,185,129,0.08); color: #10b981; border-color: rgba(16,185,129,0.2); }
+        .eval-btn-tp:hover,.eval-btn-tp.active { background: rgba(16,185,129,0.22); border-color: rgba(16,185,129,0.45); box-shadow: 0 0 10px rgba(16,185,129,0.18); }
+        .eval-btn-fp { background: rgba(239,68,68,0.08); color: #ef4444; border-color: rgba(239,68,68,0.2); }
+        .eval-btn-fp:hover,.eval-btn-fp.active { background: rgba(239,68,68,0.22); border-color: rgba(239,68,68,0.45); box-shadow: 0 0 10px rgba(239,68,68,0.18); }
+
+        /* === CALENDAR === */
+        .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+        .cal-day { text-align: center; padding: 5px 2px; border-radius: 7px; font-size: 11px; cursor: pointer; transition: all 0.18s; position: relative; min-height: 34px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #94a3b8; }
+        .cal-day:hover { background: rgba(59,130,246,0.12); color: #93c5fd; }
+        .cal-day.today { border: 1px solid rgba(59,130,246,0.45); color: #60a5fa; font-weight: 700; }
+        .cal-day.selected { background: rgba(59,130,246,0.22); color: #fff; font-weight: 700; }
+        .cal-day.has-alerts { color: #fbbf24; font-weight: 600; }
+        .cal-day.has-critical { color: #f87171; font-weight: 700; }
+        .cal-day.empty { cursor: default; opacity: 0.15; }
+        .cal-badge { font-size: 8px; background: rgba(59,130,246,0.25); padding: 1px 4px; border-radius: 3px; margin-top: 1px; color: #93c5fd; font-weight: 700; }
+        .cal-day.has-critical .cal-badge { background: rgba(239,68,68,0.25); color: #fca5a5; }
+        .cal-nav-btn { background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 5px 12px; border-radius: 7px; color: #cbd5e1; cursor: pointer; font-size: 11px; font-weight: 700; transition: all 0.18s; }
+        .cal-nav-btn:hover { background: rgba(59,130,246,0.12); color: #93c5fd; border-color: rgba(59,130,246,0.3); }
+
+        /* === DATE INPUTS === */
+        .date-input { background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 8px; padding: 7px 11px; color: #f1f5f9; font-size: 13px; transition: border-color 0.2s; color-scheme: dark; width: 100%; font-family: var(--font-main); }
+        .date-input:focus { outline: none; border-color: rgba(139,92,246,0.45); }
+        .quick-date-btn { padding: 5px 11px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: #94a3b8; cursor: pointer; transition: all 0.18s; text-transform: uppercase; }
+        .quick-date-btn:hover,.quick-date-btn.active { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.3); color: #c4b5fd; }
+
+        /* === CHAT === */
+        .chat-bubble { padding: 9px 14px; border-radius: 11px; font-size: 13px; line-height: 1.6; max-width: 92%; word-wrap: break-word; }
+        .chat-user { background: rgba(59,130,246,0.13); color: #bfdbfe; border: 1px solid rgba(59,130,246,0.18); margin-left: auto; border-bottom-right-radius: 3px; }
+        .chat-ai   { background: rgba(139,92,246,0.09); color: #ddd6fe; border: 1px solid rgba(139,92,246,0.14); margin-right: auto; border-bottom-left-radius: 3px; }
+        .chat-input { flex: 1; background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 9px; padding: 8px 13px; color: #f1f5f9; font-size: 13px; font-family: var(--font-main); }
+        .chat-input:focus { outline: none; border-color: rgba(139,92,246,0.4); }
+
+        /* === ALERT HISTORY === */
+        .date-group-header { background: linear-gradient(90deg, rgba(59,130,246,0.09) 0%, transparent 100%); border-left: 3px solid #3b82f6; padding: 8px 14px; border-radius: 7px; margin-bottom: 10px; margin-top: 6px; }
+        .alert-card-expandable { cursor: pointer; transition: all 0.2s; }
+        .alert-card-expandable:hover { border-color: rgba(255,255,255,0.16); }
+        .session-header { background: linear-gradient(90deg, rgba(245,158,11,0.09) 0%, transparent 100%); border-left: 3px solid #f59e0b; padding: 8px 14px; border-radius: 7px; margin-bottom: 8px; margin-top: 12px; display: flex; align-items: center; }
+
+        /* === FILTER BAR === */
+        .filter-select { background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 8px; padding: 7px 11px; color: #cbd5e1; font-size: 13px; cursor: pointer; font-family: var(--font-main); }
+        .filter-select:focus { outline: none; border-color: rgba(59,130,246,0.4); }
+        .filter-select option { background: #0f172a; color: #e2e8f0; font-size: 13px; }
+
+        /* === STATS STRIP === */
+        .stat-pill { background: rgba(255,255,255,0.035); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+
+        /* === ROOT CAUSE BOX === */
+        .root-cause-box { background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.18); border-radius: 10px; padding: 14px; }
+        .playbook-box { background: rgba(16,185,129,0.04); border: 1px solid rgba(16,185,129,0.18); border-radius: 10px; padding: 14px; }
+        .rate-limiter-box { background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.18); border-radius: 10px; padding: 14px; }
+
+        /* === RATE LIMITER STATUS === */
+        .rl-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+        .rl-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+        /* === SECTION TITLE === */
+        .section-label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ======================== SIDEBAR ======================== -->
+    <aside class="sidebar flex flex-col justify-between py-4 hidden md:flex z-10">
+        <!-- Logo -->
+        <div>
+            <div class="flex items-center gap-3 px-5 mb-6">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg border border-blue-400/25 flex-shrink-0">
+                    <span class="font-black text-white text-xs tracking-wider">SOC</span>
+                </div>
+                <div>
+                    <h1 class="font-black text-white text-base tracking-wide leading-none">KMA SOC</h1>
+                    <p class="text-[9px] text-blue-400 font-bold uppercase tracking-[0.2em] mt-0.5">Premium Core</p>
+                </div>
+            </div>
+
+            <!-- Nav -->
+            <div class="nav-section">Điều hành</div>
+            <nav class="px-3 space-y-1">
+                <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active">
+                    <span class="nav-indicator"></span> Dashboard
+                </a>
+                <a href="#" onclick="switchTab('alerts')" id="nav-alerts" class="nav-item">
+                    <span class="nav-indicator"></span> Lịch sử cảnh báo
+                </a>
+                <a href="#" onclick="switchTab('logstream')" id="nav-logstream" class="nav-item">
+                    <span class="nav-indicator"></span> Log Stream Thực
+                </a>
+                <a href="#" onclick="switchTab('vulns')" id="nav-vulns" class="nav-item">
+                    <span class="nav-indicator"></span> Lỗ hổng (CVE)
+                </a>
+            </nav>
+
+            <div class="nav-section mt-4">AI & Truy vấn</div>
+            <nav class="px-3 space-y-1">
+                <a href="#" onclick="switchTab('playbooks')" id="nav-playbooks" class="nav-item">
+                    <span class="nav-indicator"></span> AI Playbooks
+                </a>
+                <a href="#" onclick="switchTab('siem')" id="nav-siem" class="nav-item">
+                    <span class="nav-indicator"></span> Truy vấn SIEM/EDR
+                </a>
+            </nav>
+
+            <!-- 1-Click Quick Actions -->
+            <div class="nav-section mt-4">Tác vụ nhanh</div>
+            <div class="px-3 space-y-1.5">
+                <button onclick="quickGenSplunk()" class="quick-btn quick-btn-splunk w-full justify-start">
+                    <span class="font-mono font-bold text-[11px]">[SPL]</span> Sinh Splunk SPL
+                </button>
+                <button onclick="quickGenKQL()" class="quick-btn quick-btn-kql w-full justify-start">
+                    <span class="font-mono font-bold text-[11px]">[KQL]</span> Sinh Sentinel KQL
+                </button>
+                <button onclick="quickCopyLast()" id="btn-quick-copy" class="quick-btn quick-btn-copy w-full justify-start">
+                    <span class="font-mono font-bold text-[11px]">[LOG]</span> Sao chép log cuối
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-5 pt-4 border-t border-white/5">
+            <div class="text-[11px] text-slate-400 space-y-1.5">
+                <p class="font-mono"><span class="text-slate-500 font-bold">Hệ thống:</span> Wazuh Core v4.7.2</p>
+                <p class="font-mono"><span class="text-slate-500 font-bold">Mô hình:</span> Local Llama 3</p>
+                <div class="flex items-center gap-2 mt-2.5 p-2 rounded-lg glass" style="border-color:rgba(16,185,129,0.2)">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                    <span class="text-emerald-400 font-bold tracking-wide text-[9.5px]">SYSTEM ONLINE</span>
+                </div>
+            </div>
+            <a href="#" onclick="switchTab('settings')" id="nav-settings" class="nav-item mt-2">
+                <span class="nav-indicator"></span> Cài đặt
+            </a>
+        </div>
+    </aside>
+
+    <!-- ======================== MAIN ======================== -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+        <!-- Topbar -->
+        <header class="topbar flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <h2 id="page-title" class="text-lg font-bold text-white tracking-wide">SOC Overview</h2>
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-emerald-400 font-mono text-xs font-bold">
+                    <span class="text-slate-400 text-[10px] font-sans">GIỜ HỆ THỐNG:</span>
+                    <span id="real-time-clock">--:--:--</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full glass">
+                    <div class="w-2 h-2 rounded-full bg-red-500 pulse-live"></div>
+                    <span class="text-[10px] font-bold text-slate-300">Auto-Sync</span>
+                </div>
+                <button onclick="refreshData()" class="btn-ghost py-1 px-3 text-xs" title="Làm mới">
+                    Làm mới
+                </button>
+                <div class="w-9 h-9 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center font-bold text-white text-sm shadow-lg border border-blue-400/20">AD</div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="flex-1 overflow-y-auto bg-grid p-6">
+
+            <!-- ===== TAB: DASHBOARD ===== -->
+            <div id="tab-dashboard" class="tab-content space-y-5">
+
+                <!-- Metric Cards Row -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div class="glass-card glow-blue p-4 fade-up s1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">Tổng Alert</span>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">EVENT</span>
+                        </div>
+                        <span class="text-2xl font-black text-white" id="total-events-count">--</span>
+                    </div>
+                    <div class="glass-card glow-red p-4 fade-up s2">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[9px] font-bold text-red-400 uppercase tracking-[0.15em]">Critical</span>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">ALERT</span>
+                        </div>
+                        <span class="text-2xl font-black text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.4)]" id="critical-count">0</span>
+                    </div>
+                    <div class="glass-card glow-emerald p-4 fade-up s3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">Agents Online</span>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">HOST</span>
+                        </div>
+                        <span class="text-2xl font-black text-white" id="agents-count">-- <span class="text-base text-slate-500">/ --</span></span>
+                    </div>
+                    <div class="glass-card glow-purple p-4 fade-up s4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">Báo cáo AI</span>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">REPORT</span>
+                        </div>
+                        <span class="text-2xl font-black text-white" id="report-count">0</span>
+                    </div>
+                    <div class="glass-card glow-emerald p-4 fade-up s5">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.15em]">True Positive</span>
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">EVAL</span>
+                        </div>
+                        <span class="text-2xl font-black text-emerald-400" id="tp-rate">0%</span>
+                        <p class="text-[9px] text-slate-400 mt-0.5 font-medium" id="tp-detail">Chưa có đánh giá</p>
+                    </div>
+                </div>
+
+                <!-- Incident Correlator Status Banner (Chống bão cảnh báo) -->
+                <div class="glass-card p-3 px-4 flex items-center justify-between text-xs border-blue-500/20 bg-blue-500/5 fade-up s1">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse"></span>
+                        <span class="font-bold text-slate-200">Incident Correlator:</span>
+                        <span class="text-slate-400" id="pipeline-correlator-text">Đang giám sát gom nhóm theo IP/Host (Debounce: 20s)</span>
+                    </div>
+                    <div id="pipeline-correlator-badge" class="font-mono text-[11px] text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded border border-blue-500/20 font-bold">
+                        0 sự cố đang gom
+                    </div>
+                </div>
+
+                <!-- Main content: Log stream + AI Panel -->
+                <div class="grid grid-cols-1 xl:grid-cols-5 gap-5">
+
+                    <!-- Real-time Log Stream (3/5) -->
+                    <div class="xl:col-span-3 glass-card flex flex-col fade-up s2" style="min-height:400px">
+                        <div class="flex items-center justify-between px-5 py-4 border-b border-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
+                                <h3 class="font-bold text-white text-sm">Real-time Log Stream</h3>
+                                <span class="text-[9px] bg-red-500/10 text-red-400 border border-red-500/15 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">LIVE</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-slate-400 font-medium">Wazuh Indexer</span>
+                                <span class="text-slate-600">·</span>
+                                <span class="text-[10px] text-slate-400 font-medium">Level ≥7</span>
+                            </div>
+                        </div>
+                        <div class="log-stream flex-1 m-4 mt-3" id="log-stream-box" style="min-height:220px;max-height:300px">
+                            <div class="log-entry">
+                                <span class="level-badge level-low">LOW</span>
+                                <span class="text-slate-400 font-mono text-[10px] flex-shrink-0">--:--:--</span>
+                                <span class="text-slate-400 italic text-[11px]">Đang kết nối Wazuh...</span>
+                                <span class="terminal-cursor ml-auto"></span>
+                            </div>
+                        </div>
+
+                        <!-- TP/FP Table header -->
+                        <div class="px-5 pb-2 border-t border-white/5 pt-3">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest">Chi tiết & Đánh giá Cảnh báo</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-[11px] whitespace-nowrap">
+                                    <thead>
+                                        <tr class="text-slate-400 text-[9.5px] uppercase tracking-wider border-b border-white/5">
+                                            <th class="py-2 pr-4 font-bold">Thời gian</th>
+                                            <th class="py-2 pr-4 font-bold">Level</th>
+                                            <th class="py-2 pr-4 font-bold">Agent</th>
+                                            <th class="py-2 pr-4 font-bold">Mô tả</th>
+                                            <th class="py-2 text-center font-bold">TP/FP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="alerts-table-body">
+                                        <tr>
+                                            <td colspan="5" class="py-4 text-center text-slate-400">
+                                                <span class="loading-spinner text-blue-500 mr-2"></span>
+                                                <span class="text-[11px]">Đang đồng bộ...</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Panel (2/5) -->
+                    <div class="xl:col-span-2 flex flex-col gap-4">
+
+                        <!-- AI Chẩn đoán & Phân tích -->
+                        <div class="glass-card p-5 fade-up s3 flex-1" style="background:linear-gradient(160deg,rgba(139,92,246,0.05),rgba(255,255,255,0.01))">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 flex-shrink-0">
+                                    <span class="font-bold text-purple-400 text-xs">AI</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-sm">AI Chẩn đoán & Phân tích</h3>
+                                    <p class="text-[9.5px] text-emerald-400 font-mono font-bold">● Llama 3 · Local</p>
+                                </div>
+                            </div>
+
+                            <!-- Root Cause -->
+                            <div class="root-cause-box mb-3">
+                                <div class="section-label text-red-400 font-bold">Nguyên nhân gốc (Root Cause)</div>
+                                <div id="ai-root-cause" class="text-[11px] text-slate-300 italic">Chọn cảnh báo để phân tích nguyên nhân...</div>
+                            </div>
+
+                            <!-- Playbook SOP -->
+                            <div class="playbook-box mb-3">
+                                <div class="section-label text-emerald-400 font-bold">Playbook / SOP Ứng cứu</div>
+                                <div id="ai-playbook" class="text-[11px] text-slate-300 italic">Đề xuất ứng cứu sẽ hiển thị ở đây...</div>
+                            </div>
+
+                            <!-- Phân tích khoảng thời gian -->
+                            <div class="mb-3 p-3 glass rounded-xl space-y-2">
+                                <div class="section-label text-purple-400 font-bold">Khoảng thời gian phân tích</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[8.5px] text-slate-400 font-bold uppercase mb-1 block">Từ ngày</label>
+                                        <input type="date" id="analysis-from-date" class="date-input">
+                                    </div>
+                                    <div>
+                                        <label class="text-[8.5px] text-slate-400 font-bold uppercase mb-1 block">Đến ngày</label>
+                                        <input type="date" id="analysis-to-date" class="date-input">
+                                    </div>
+                                </div>
+                                <div class="flex gap-1.5">
+                                    <button onclick="setQuickDate('today')" class="quick-date-btn active" id="qd-today">Hôm nay</button>
+                                    <button onclick="setQuickDate('yesterday')" class="quick-date-btn" id="qd-yesterday">Hôm qua</button>
+                                    <button onclick="setQuickDate('2days')" class="quick-date-btn" id="qd-2days">2 ngày</button>
+                                </div>
+                            </div>
+                            <button onclick="triggerAnalysis()" id="btn-run-ai" class="btn-primary w-full justify-center text-sm">
+                                Phân tích & Xuất Báo cáo
+                            </button>
+                        </div>
+
+                        <!-- Rate Limiter Widget -->
+                        <div class="glass-card p-4 fade-up s4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-white uppercase tracking-wider">Rate Limiter</span>
+                                    <span class="text-[8px] bg-blue-500/10 text-blue-400 border border-blue-500/15 px-1.5 py-0.5 rounded font-bold">STATE</span>
+                                </div>
+                                <span class="text-[9px] text-emerald-400 font-bold">● Hoạt động</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div>
+                                    <div class="flex justify-between text-[9.5px] text-slate-400 mb-1">
+                                        <span>Yêu cầu AI / phút</span>
+                                        <span id="rl-ai-text" class="text-slate-300 font-mono">3 / 5</span>
+                                    </div>
+                                    <div class="rl-bar"><div class="rl-fill bg-purple-500" id="rl-ai-bar" style="width:60%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-[9.5px] text-slate-400 mb-1">
+                                        <span>Chat AI / phút</span>
+                                        <span id="rl-chat-text" class="text-slate-300 font-mono">8 / 15</span>
+                                    </div>
+                                    <div class="rl-bar"><div class="rl-fill bg-blue-500" id="rl-chat-bar" style="width:53%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-[9.5px] text-slate-400 mb-1">
+                                        <span>SQLite lưu trữ</span>
+                                        <span id="db-size-text" class="text-slate-300 font-mono">-- KB</span>
+                                    </div>
+                                    <div class="rl-bar"><div class="rl-fill bg-emerald-500" id="rl-db-bar" style="width:30%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 xl:grid-cols-5 gap-5 fade-up s5">
+                    <div class="glass-card p-5 xl:col-span-3">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">24H</span>
+                            <h3 class="font-bold text-white text-sm">Biểu đồ lịch sử Alert 24h (SQLite)</h3>
+                        </div>
+                        <div class="h-40 relative"><canvas id="alert-trend-chart"></canvas></div>
+                    </div>
+                    <div class="glass-card p-5 xl:col-span-2">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">MỨC ĐỘ</span>
+                            <h3 class="font-bold text-white text-sm">Alerts by Severity</h3>
+                        </div>
+                        <div class="h-40 flex items-center justify-center"><canvas id="severity-chart"></canvas></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ===== TAB: LOG STREAM ===== -->
+            <div id="tab-logstream" class="tab-content hidden space-y-5">
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
+                            <h3 class="font-bold text-white text-lg">Luồng Log Thời Gian Thực (Wazuh)</h3>
+                            <span class="text-[9px] bg-red-500/10 text-red-400 border border-red-500/15 px-2 py-0.5 rounded-full font-bold uppercase">LIVE</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-[11px] text-slate-400 font-medium">Level tối thiểu:</label>
+                            <select id="min-level-filter" class="filter-select" onchange="applyLevelFilter()">
+                                <option value="5">Level 5+</option>
+                                <option value="7" selected>Level 7+</option>
+                                <option value="8">Level 8+ (High)</option>
+                                <option value="12">Level 12+ (Critical)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="log-stream mb-4" id="log-stream-full" style="height:400px;overflow-y:auto">
+                        <div class="log-entry">
+                            <span class="level-badge level-low">INFO</span>
+                            <span class="text-slate-400 text-[10px] font-mono">--:--:--</span>
+                            <span class="text-slate-400 italic text-[11px]">Đang kết nối Wazuh Indexer...</span>
+                            <span class="terminal-cursor ml-auto"></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="refreshLogStream()" class="btn-ghost">Làm mới</button>
+                        <button onclick="clearLogStream()" class="btn-ghost">Xóa sạch</button>
+                        <div class="ml-auto text-[11px] text-slate-400">Tích hợp: <span class="text-blue-400 font-bold">Wazuh Indexer · SQLite Cache</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: ALERTS HISTORY ===== -->
+            <div id="tab-alerts" class="tab-content hidden space-y-5">
+
+                <!-- Stats strip -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 fade-up s1">
+                    <div class="stat-pill border-l-2 border-l-blue-500">
+                        <div>
+                            <div class="text-[9.5px] text-slate-400 uppercase tracking-wider font-bold">Hôm nay</div>
+                            <div class="text-base font-black text-white" id="stat-today">--</div>
+                        </div>
+                    </div>
+                    <div class="stat-pill border-l-2 border-l-purple-500">
+                        <div>
+                            <div class="text-[9.5px] text-slate-400 uppercase tracking-wider font-bold">Tháng này</div>
+                            <div class="text-base font-black text-white" id="stat-month">--</div>
+                        </div>
+                    </div>
+                    <div class="stat-pill border-l-2 border-l-red-500">
+                        <div>
+                            <div class="text-[9.5px] text-slate-400 uppercase tracking-wider font-bold">Critical</div>
+                            <div class="text-base font-black text-red-400" id="stat-critical">--</div>
+                        </div>
+                    </div>
+                    <div class="stat-pill border-l-2 border-l-emerald-500">
+                        <div>
+                            <div class="text-[9.5px] text-slate-400 uppercase tracking-wider font-bold">True Positive</div>
+                            <div class="text-base font-black text-emerald-400" id="stat-tp">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+                    <!-- Calendar + Filters -->
+                    <div class="space-y-4">
+                        <!-- Calendar -->
+                        <div class="glass-card p-4 fade-up s2">
+                            <div class="flex items-center justify-between mb-3">
+                                <button onclick="calPrevMonth()" class="cal-nav-btn">&larr; Trước</button>
+                                <h4 class="text-white font-bold text-sm" id="cal-month-label">Tháng 9 / 2026</h4>
+                                <button onclick="calNextMonth()" class="cal-nav-btn">Sau &rarr;</button>
+                            </div>
+                            <div class="cal-grid mb-2">
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">CN</div>
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">T2</div>
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">T3</div>
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">T4</div>
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">T5</div>
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">T6</div>
+                                <div class="text-[9.5px] text-slate-400 font-bold text-center py-1">T7</div>
+                            </div>
+                            <div class="cal-grid" id="cal-days-grid"></div>
+                            <div class="flex items-center gap-3 mt-3 text-[10px] text-slate-400">
+                                <span><span class="inline-block w-2 h-2 rounded bg-blue-500 mr-1"></span>Hôm nay</span>
+                                <span><span class="inline-block w-2 h-2 rounded bg-amber-500 mr-1"></span>Có alert</span>
+                                <span><span class="inline-block w-2 h-2 rounded bg-red-500 mr-1"></span>Critical</span>
+                            </div>
+                            <button onclick="loadMonthAlerts()" class="btn-ghost w-full justify-center mt-3 text-xs">
+                                Xem cả tháng
+                            </button>
+                        </div>
+
+                        <!-- Filter Panel -->
+                        <div class="glass-card p-4 fade-up s3">
+                            <div class="section-label text-blue-400 font-bold">Bộ lọc nâng cao</div>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="text-[9.5px] text-slate-400 uppercase font-bold mb-1 block">Severity</label>
+                                    <select id="filter-severity" class="filter-select w-full" onchange="applyFilters()">
+                                        <option value="">Tất cả</option>
+                                        <option value="12">Critical (≥12)</option>
+                                        <option value="8">High (≥8)</option>
+                                        <option value="5">Medium (≥5)</option>
+                                        <option value="1">Low</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9.5px] text-slate-400 uppercase font-bold mb-1 block">Đánh giá</label>
+                                    <select id="filter-eval" class="filter-select w-full" onchange="applyFilters()">
+                                        <option value="">Tất cả</option>
+                                        <option value="true_positive">True Positive</option>
+                                        <option value="false_positive">False Positive</option>
+                                        <option value="null">Chưa đánh giá</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9.5px] text-slate-400 uppercase font-bold mb-1 block">Từ khoá</label>
+                                    <input type="text" id="filter-keyword" placeholder="Agent, Rule, Mô tả..." class="date-input" oninput="applyFilters()">
+                                </div>
+                                <button onclick="resetFilters()" class="btn-ghost w-full justify-center text-xs mt-1">
+                                    Đặt lại bộ lọc
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert List (2/3) -->
+                    <div class="xl:col-span-2 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="text-white font-bold" id="selected-date-label">Hôm nay</span>
+                                <span class="text-slate-400 text-xs" id="selected-alert-count"></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleSessionView()" id="btn-session-view" class="btn-ghost text-xs">
+                                    Xem theo Phiên
+                                </button>
+                                <span class="text-[9.5px] text-slate-400 font-mono" id="eval-summary-text"></span>
+                            </div>
+                        </div>
+                        <div id="full-alerts-container" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: PLAYBOOKS ===== -->
+            <div id="tab-playbooks" class="tab-content hidden space-y-5">
+                <div class="flex items-center justify-between mb-1">
+                    <div>
+                        <h3 class="font-bold text-white text-xl">AI Playbooks & SOP</h3>
+                        <p class="text-slate-400 text-sm mt-1">Trợ lý truy vấn thông minh — Llama 3 (Offline)</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-purple-500/8 text-purple-400 px-3 py-1.5 rounded-full border border-purple-500/15">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Local AI Active</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                    <div class="glass-card p-6 flex flex-col">
+                        <h4 class="text-sm font-bold mb-4 text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                            <span class="text-blue-400 font-bold">[RAG]</span> Hỏi đáp SOC Playbook
+                        </h4>
+                        <textarea id="rag-input" class="w-full bg-black/30 border border-white/8 rounded-xl p-4 text-slate-200 text-sm focus:outline-none focus:border-blue-500/50 resize-none h-28 mb-4" placeholder="Ví dụ: Dấu hiệu tấn công Brute-force?" maxlength="2000"></textarea>
+                        <button onclick="askRAG()" id="btn-rag" class="btn-ghost w-full justify-center mb-4">
+                            Gửi Yêu Cầu RAG
+                        </button>
+                        <div class="flex-grow bg-black/20 rounded-xl border border-white/5 p-4">
+                            <div class="section-label">Kết quả</div>
+                            <div id="rag-output" class="text-slate-300 text-sm overflow-y-auto max-h-48 whitespace-pre-wrap">Đang chờ câu hỏi...</div>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 flex flex-col">
+                        <h4 class="text-sm font-bold mb-4 text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                            <span class="text-purple-400 font-bold">[CHAT]</span> Hỏi đáp AI Tự do (SOC Expert)
+                        </h4>
+                        <div class="flex-1 flex flex-col bg-black/20 rounded-xl border border-white/5 overflow-hidden" style="min-height:280px">
+                            <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2" id="chat-messages" style="max-height:260px">
+                                <div class="chat-bubble chat-ai">Xin chào! Tôi là trợ lý SOC AI. Hỏi tôi bất cứ điều gì về an ninh mạng.</div>
+                            </div>
+                            <div class="flex gap-2 p-3 border-t border-white/5">
+                                <input type="text" id="chat-input" class="chat-input" placeholder="Hỏi về an ninh mạng..." maxlength="2000" onkeydown="if(event.key==='Enter')sendChat()">
+                                <button onclick="sendChat()" id="btn-chat" class="btn-primary px-5">
+                                    Gửi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: SIEM/EDR QUERY ===== -->
+            <div id="tab-siem" class="tab-content hidden space-y-5">
+                <div class="flex items-center justify-between mb-1">
+                    <div>
+                        <h3 class="font-bold text-white text-xl">Truy vấn SIEM/EDR — 1-Click</h3>
+                        <p class="text-slate-400 text-sm mt-1">Sinh Splunk SPL & Microsoft Sentinel KQL từ ngôn ngữ tự nhiên.</p>
+                    </div>
+                </div>
+                <div class="glass-card p-6">
+                    <h4 class="text-sm font-bold mb-4 text-white flex items-center gap-2 border-b border-white/5 pb-3">
+                        <span class="text-emerald-400 font-bold">[QUERY]</span> Sinh lệnh KQL / SPL / Hệ thống
+                    </h4>
+                    <textarea id="query-input" class="w-full bg-black/30 border border-white/8 rounded-xl p-4 text-slate-200 text-sm focus:outline-none focus:border-emerald-500/50 resize-none h-28 mb-4" placeholder="Ví dụ: Lọc log Event 4625 từ IP 10.0.0.5" maxlength="2000"></textarea>
+                    <div class="flex gap-3 mb-4 flex-wrap">
+                        <button onclick="generateQuery()" id="btn-query" class="btn-primary">
+                            Biên dịch sang KQL/SPL
+                        </button>
+                        <button onclick="copyQueryOutput()" class="btn-ghost">
+                            Sao chép
+                        </button>
+                        <button onclick="prefillSplunk()" class="quick-btn quick-btn-splunk">
+                            <span class="font-mono font-bold text-[11px]">[SPL]</span> Mẫu Splunk
+                        </button>
+                        <button onclick="prefillKQL()" class="quick-btn quick-btn-kql">
+                            <span class="font-mono font-bold text-[11px]">[KQL]</span> Mẫu KQL
+                        </button>
+                    </div>
+                    <div class="bg-black/30 rounded-xl border border-emerald-500/10 p-4">
+                        <div class="section-label text-emerald-400">Câu lệnh sinh ra</div>
+                        <div id="query-output" class="text-emerald-400 font-mono text-sm overflow-y-auto max-h-60 whitespace-pre-wrap">...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: VULNERABILITIES (CVE) ===== -->
+            <div id="tab-vulns" class="tab-content hidden space-y-5">
+                <!-- Thống kê Lỗ hổng -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="glass-card glow-blue p-4">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tổng CVE Phát Hiện</span>
+                        <div class="text-2xl font-black text-white mt-1" id="vuln-total-count">0</div>
+                    </div>
+                    <div class="glass-card glow-red p-4">
+                        <span class="text-[9px] font-bold text-red-400 uppercase tracking-widest">Critical (Nghiêm Trọng)</span>
+                        <div class="text-2xl font-black text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.4)] mt-1" id="vuln-critical-count">0</div>
+                    </div>
+                    <div class="glass-card glow-amber p-4">
+                        <span class="text-[9px] font-bold text-amber-400 uppercase tracking-widest">High (Cao)</span>
+                        <div class="text-2xl font-black text-amber-400 mt-1" id="vuln-high-count">0</div>
+                    </div>
+                    <div class="glass-card glow-purple p-4">
+                        <span class="text-[9px] font-bold text-purple-400 uppercase tracking-widest">Medium & Low</span>
+                        <div class="text-2xl font-black text-purple-400 mt-1" id="vuln-med-count">0</div>
+                    </div>
+                </div>
+
+                <!-- Thanh tìm kiếm & bộ lọc -->
+                <div class="glass-card p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-[280px]">
+                        <input type="text" id="vuln-search-input" onkeyup="filterVulnerabilities()" placeholder="Tìm kiếm theo CVE ID, tên gói hoặc mô tả..." class="w-full bg-black/35 border border-white/10 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50">
+                        <select id="vuln-severity-filter" onchange="loadVulnerabilities()" class="filter-select">
+                            <option value="">Tất cả mức độ</option>
+                            <option value="Critical">Critical (Nghiêm trọng)</option>
+                            <option value="High">High (Cao)</option>
+                            <option value="Medium">Medium (Trung bình)</option>
+                            <option value="Low">Low (Thấp)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="loadVulnerabilities()" class="btn-ghost">
+                            Làm mới CVE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách Lỗ hổng -->
+                <div class="glass-card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs whitespace-nowrap">
+                            <thead>
+                                <tr class="text-slate-400 text-[10px] uppercase tracking-wider border-b border-white/5 bg-white/[0.02]">
+                                    <th class="py-3 px-4 font-bold">Mã CVE / Tiêu đề</th>
+                                    <th class="py-3 px-3 font-bold text-center">Mức độ</th>
+                                    <th class="py-3 px-3 font-bold text-center">CVSS</th>
+                                    <th class="py-3 px-4 font-bold">Gói phần mềm</th>
+                                    <th class="py-3 px-4 font-bold">Agent bị ảnh hưởng</th>
+                                    <th class="py-3 px-3 font-bold">Ngày công bố</th>
+                                    <th class="py-3 px-4 font-bold text-center">Kế hoạch AI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vulns-table-body" class="divide-y divide-white/[0.04]">
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-slate-400 italic">
+                                        <span class="loading-spinner mr-2"></span> Đang tải dữ liệu lỗ hổng bảo mật...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal AI Remediation Plan -->
+            <div id="cve-remediation-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+                <div class="glass-card glow-purple max-w-2xl w-full p-6 relative border border-white/15 max-h-[85vh] flex flex-col">
+                    <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="w-3 h-3 rounded-full bg-purple-500 animate-ping"></span>
+                            <h3 class="font-bold text-white text-base" id="modal-cve-title">Kế hoạch Khắc phục Lỗ hổng</h3>
+                        </div>
+                        <button onclick="closeRemediationModal()" class="text-slate-400 hover:text-white text-lg font-bold px-2 py-1 rounded-lg hover:bg-white/10">&times;</button>
+                    </div>
+                    <div id="modal-cve-meta" class="text-xs text-slate-400 mb-3 space-y-1"></div>
+                    <div id="modal-cve-content" class="text-xs text-slate-200 leading-relaxed overflow-y-auto pr-2 space-y-2 flex-1 p-3 bg-black/30 rounded-xl border border-white/5">
+                        <div class="py-6 text-center text-slate-400">
+                            <span class="loading-spinner mr-2"></span> AI đang phân tích và lập kế hoạch ứng cứu...
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-white/10 flex justify-end gap-3 mt-4">
+                        <button onclick="closeRemediationModal()" class="btn-ghost">Đóng</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: SETTINGS ===== -->
+            <div id="tab-settings" class="tab-content hidden space-y-4">
+                <div class="max-w-2xl mx-auto glass-card p-8">
+                    <div class="flex items-center gap-4 mb-6 pb-6 border-b border-white/5">
+                        <div class="w-11 h-11 rounded-xl glass flex items-center justify-center font-bold text-slate-300">
+                            CFG
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-xl">Cấu hình Hệ thống & AI</h3>
+                            <p class="text-sm text-slate-400 mt-1">Quản lý kết nối API và cấu hình.</p>
+                        </div>
+                    </div>
+                    <div class="space-y-5">
+                        <div class="glass p-5 rounded-xl">
+                            <label class="flex items-center gap-2 text-sm font-bold text-white mb-3">
+                                <span class="text-amber-400 font-bold">[KEY]</span> API Key (Dự phòng)
+                            </label>
+                            <p class="text-xs text-slate-400 mb-4">Đang dùng Local LLM (Llama 3) — không cần API Key.</p>
+                            <div class="flex gap-3">
+                                <input type="password" id="api-key-input" placeholder="Nhập API Key..." class="flex-1 bg-black/30 border border-white/8 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 font-mono">
+                                <button onclick="saveSettings()" class="btn-primary">Lưu cấu hình</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="glass p-4 rounded-xl">
+                                <span class="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider">SIEM Endpoint</span>
+                                <p class="text-sm font-mono text-white mt-1" id="siem-endpoint">--</p>
+                            </div>
+                            <div class="glass p-4 rounded-xl">
+                                <span class="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider">Reports Directory</span>
+                                <p class="text-sm font-mono text-white mt-1">/TTCS/reports/</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div><!-- end main wrapper -->
+
+    <script>
+    // ========================== UTILS ==========================
+    function escapeHTML(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = String(str);
+        return d.innerHTML;
+    }
+    function getToday() { return new Date().toISOString().split('T')[0]; }
+    function getYesterday() { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
+    function formatDateVN(ds) {
+        const d = new Date(ds + 'T00:00:00');
+        return d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'});
+    }
+    function formatDateDisplay(ds) {
+        const today = getToday(), yd = getYesterday();
+        if (ds === today) return `Hôm nay (${formatDateVN(ds)})`;
+        if (ds === yd)    return `Hôm qua (${formatDateVN(ds)})`;
+        return `${formatDateVN(ds)}`;
+    }
+    function getLevelBadge(l) {
+        if (l >= 12) return 'level-critical';
+        if (l >= 8)  return 'level-high';
+        if (l >= 5)  return 'level-medium';
+        return 'level-low';
+    }
+    function getLevelLabel(l) {
+        if (l >= 12) return 'CRITICAL';
+        if (l >= 8)  return 'HIGH';
+        if (l >= 5)  return 'MEDIUM';
+        return 'LOW';
+    }
+    function getLevelColor(l) {
+        if (l >= 12) return '#ef4444';
+        if (l >= 8)  return '#f97316';
+        if (l >= 5)  return '#eab308';
+        return '#3b82f6';
+    }
+    function getLevelTableBadge(l) {
+        if (l >= 12) return 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold';
+        if (l >= 8)  return 'bg-orange-500/10 text-orange-400 border border-orange-500/20 font-bold';
+        if (l >= 5)  return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+        return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+    }
+
+    // ========================== TOAST ==========================
+    function showToast(message, type='alert') {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = 'toast' + (type === 'success' ? ' toast-success' : '');
+        const tag   = type === 'success' ? '[THÀNH CÔNG]' : '[CẢNH BÁO]';
+        const tagCls = type === 'success' ? 'text-emerald-400' : 'text-red-400';
+        const title = type === 'success' ? 'Thành công' : 'Cảnh báo';
+        t.innerHTML = `<div class="flex items-start gap-3">
+            <span class="font-mono text-xs font-bold ${tagCls} mt-0.5 flex-shrink-0">${tag}</span>
+            <div class="flex-1 min-w-0">
+                <p class="text-white text-sm font-semibold">${title}</p>
+                <p class="text-slate-300 text-xs mt-0.5">${escapeHTML(message)}</p>
+            </div>
+            <button onclick="this.closest('.toast').remove()" class="text-slate-400 hover:text-white flex-shrink-0 font-bold text-sm px-1" title="Đóng">&times;</button>
+        </div>`;
+        c.appendChild(t);
+        setTimeout(() => { t.classList.add('toast-exit'); setTimeout(() => t.remove(), 280); }, 4500);
+    }
+
+    // ========================== TAB ==========================
+    const TAB_TITLES = {
+        dashboard:'SOC Overview', alerts:'Lịch sử Cảnh báo',
+        logstream:'Log Stream Thực', vulns:'Quản lý Lỗ hổng & Điểm yếu (CVE)',
+        playbooks:'AI Playbooks',
+        siem:'Truy vấn SIEM/EDR', settings:'Cấu hình'
+    };
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+        const navEl = document.getElementById('nav-' + tabId);
+        if (navEl) navEl.classList.add('active');
+        document.getElementById('page-title').innerText = TAB_TITLES[tabId] || tabId;
+        if (tabId === 'alerts')     { initAlerts(); }
+        if (tabId === 'logstream')  { refreshLogStream(); }
+        if (tabId === 'vulns')      { loadVulnerabilities(); }
+    }
+
+    // ========================== SETTINGS ==========================
+    function saveSettings() {
+        fetch('/api/set_key', {method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({api_key: document.getElementById('api-key-input').value})
+        }).then(r => r.json()).then(() => showToast('Cập nhật thành công.','success')).catch(err => showToast('Lỗi: '+err));
+    }
+
+    // ========================== DATE QUICK ==========================
+    function setQuickDate(p) {
+        const f = document.getElementById('analysis-from-date');
+        const t = document.getElementById('analysis-to-date');
+        document.querySelectorAll('.quick-date-btn').forEach(b => b.classList.remove('active'));
+        const today = getToday(), yd = getYesterday();
+        if (p === 'today')     { f.value = today; t.value = today; document.getElementById('qd-today').classList.add('active'); }
+        else if (p === 'yesterday') { f.value = yd;  t.value = yd;  document.getElementById('qd-yesterday').classList.add('active'); }
+        else if (p === '2days')    { f.value = yd;  t.value = today; document.getElementById('qd-2days').classList.add('active'); }
+    }
+
+    // ========================== CHARTS ==========================
+    let trendChart = null, severityChart = null;
+
+    function renderTrendChart(labels, data) {
+        const canvas = document.getElementById('alert-trend-chart');
+        const ctx = canvas.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 0, 160);
+        g.addColorStop(0, 'rgba(59,130,246,0.28)');
+        g.addColorStop(1, 'rgba(59,130,246,0.0)');
+        if (trendChart) trendChart.destroy();
+        trendChart = new Chart(ctx, {
+            type:'line',
+            data:{ labels, datasets:[{label:'Alerts', data, fill:true, backgroundColor:g, borderColor:'#3b82f6', borderWidth:2, tension:0.4, pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:'#3b82f6'}] },
+            options:{ responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{display:false}, tooltip:{backgroundColor:'rgba(8,13,28,0.95)', borderColor:'rgba(59,130,246,0.2)', borderWidth:1, padding:10, cornerRadius:8, displayColors:false} },
+                scales:{ x:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{color:'#475569', font:{size:9}, maxTicksLimit:8}},
+                         y:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{color:'#475569', font:{size:9}}, beginAtZero:true} },
+                interaction:{intersect:false, mode:'index'}
+            }
+        });
+    }
+
+    function renderSeverityChart(data, colors) {
+        const ctx = document.getElementById('severity-chart');
+        if (severityChart) severityChart.destroy();
+        severityChart = new Chart(ctx, {
+            type:'doughnut',
+            data:{ labels:['Critical','High','Medium','Low'], datasets:[{data, backgroundColor:colors, borderWidth:0, hoverOffset:8, borderRadius:3}] },
+            options:{ responsive:true, maintainAspectRatio:false, cutout:'70%',
+                plugins:{ legend:{position:'bottom', labels:{color:'#94a3b8', padding:12, font:{size:10, weight:'bold'}, usePointStyle:true, pointStyle:'circle'}},
+                           tooltip:{backgroundColor:'rgba(8,13,28,0.95)', padding:10, cornerRadius:8} }
+            }
+        });
+    }
+
+    function fetchAlertStats() {
+        fetch('/api/alert_stats').then(r => r.json()).then(d => {
+            if (d.status === 'success') {
+                renderTrendChart(d.trend.labels, d.trend.data);
+                renderSeverityChart(d.severity.data, d.severity.colors);
+            }
+        }).catch(() => {});
+    }
+
+    function fetchSystemInfo() {
+        fetch('/api/system_info').then(r => r.json()).then(d => {
+            if (d.total_events !== undefined) document.getElementById('total-events-count').innerText = d.total_events.toLocaleString();
+            if (d.agents_online !== undefined) document.getElementById('agents-count').innerHTML = `${d.agents_online} <span class="text-base text-slate-500">/ ${d.agents_total}</span>`;
+            if (d.report_count !== undefined)  document.getElementById('report-count').innerText = d.report_count;
+            if (d.siem_endpoint) document.getElementById('siem-endpoint').innerText = d.siem_endpoint;
+        }).catch(() => {});
+    }
+
+    function fetchEvalStats() {
+        fetch('/api/evaluation_stats').then(r => r.json()).then(d => {
+            if (d.status === 'success') {
+                document.getElementById('tp-rate').innerText = d.tp_rate + '%';
+                document.getElementById('stat-tp').innerText = d.tp_rate + '%';
+                if (d.total_evaluated > 0) {
+                    document.getElementById('tp-detail').innerText = `TP:${d.true_positive}|FP:${d.false_positive}|Chưa:${d.not_evaluated}`;
+                    document.getElementById('eval-summary-text').innerText = `TP:${d.true_positive} / FP:${d.false_positive} (${d.tp_rate}%)`;
+                }
+            }
+        }).catch(() => {});
+    }
+
+    // ========================== LOG STREAM ==========================
+    let allFetchedAlerts = [];
+    let previousCriticalCount = -1;
+    let minLevelFilter = 7;
+
+    function buildLogEntry(item) {
+        const badge = getLevelBadge(item.level);
+        const label = getLevelLabel(item.level);
+        const t = escapeHTML(item.time_display || '');
+        const a = escapeHTML(item.agent);
+        const d = escapeHTML(item.description);
+        return `<div class="log-entry">
+            <span class="level-badge ${badge}">${label}</span>
+            <span class="text-slate-600 font-mono text-[10px] flex-shrink-0">${t}</span>
+            <span class="text-slate-400 text-[10px] flex-shrink-0">${a}</span>
+            <span class="text-slate-300 text-[11px] truncate flex-1">${d}</span>
+        </div>`;
+    }
+
+    function refreshData(isAuto = false) {
+        fetch('/api/get_alerts').then(r => r.json()).then(data => {
+            if (data.status !== 'success') return;
+            allFetchedAlerts = data.alerts || [];
+
+            // Update critical count
+            document.getElementById('critical-count').innerText = data.critical_count;
+            if (previousCriticalCount >= 0 && data.critical_count > previousCriticalCount) {
+                showToast(`${data.critical_count - previousCriticalCount} cảnh báo Critical mới!`);
+            }
+            previousCriticalCount = data.critical_count;
+
+            // Update log stream (mini)
+            const filtered = allFetchedAlerts.filter(a => a.level >= minLevelFilter);
+            const streamBox = document.getElementById('log-stream-box');
+            if (streamBox) {
+                streamBox.innerHTML = filtered.slice(0, 6).map(buildLogEntry).join('') +
+                    (filtered.length === 0 ? '<div class="log-entry text-slate-600 text-[11px] italic px-4">Không có sự kiện mới...</div>' : '');
+            }
+
+            // Update full log stream tab
+            const streamFull = document.getElementById('log-stream-full');
+            if (streamFull) {
+                streamFull.innerHTML = filtered.map(buildLogEntry).join('') +
+                    (filtered.length === 0 ? '<div class="log-entry text-slate-600 text-[11px] italic px-4">Không có sự kiện mới...</div>' : '');
+            }
+
+            // Update alerts table
+            let tbody = '';
+            allFetchedAlerts.slice(0, 6).forEach(item => {
+                const badge = getLevelTableBadge(item.level);
+                const t   = escapeHTML(item.time_display || '');
+                const a   = escapeHTML(item.agent);
+                const d   = escapeHTML(item.description);
+                const aid = escapeHTML(item.alert_id || '');
+                const eTP = item.evaluation === 'true_positive'  ? 'active' : '';
+                const eFP = item.evaluation === 'false_positive' ? 'active' : '';
+                tbody += `<tr class="border-b border-white/[0.03] hover:bg-white/[0.02] transition">
+                    <td class="py-2 pr-4 font-mono text-[10px] text-slate-500">${t}</td>
+                    <td class="py-2 pr-4"><span class="px-2 py-0.5 rounded text-[9px] ${badge}">Lv.${item.level}</span></td>
+                    <td class="py-2 pr-4 text-[11px] text-slate-300 font-semibold">${a}</td>
+                    <td class="py-2 pr-4 text-[11px] text-slate-400 max-w-xs truncate" title="${d}">${d}</td>
+                    <td class="py-2 text-center">
+                        <div class="eval-container flex items-center justify-center gap-1">
+                            <button onclick="evaluateAlert('${aid}','true_positive',this)" class="eval-btn eval-btn-tp ${eTP}">✓TP</button>
+                            <button onclick="evaluateAlert('${aid}','false_positive',this)" class="eval-btn eval-btn-fp ${eFP}">✗FP</button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('alerts-table-body').innerHTML = tbody || '<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">Không có dữ liệu.</td></tr>';
+
+            // Update AI root cause from latest critical
+            updateAIRootCause(allFetchedAlerts);
+
+            // Update stats
+            fetchAlertStats24hStats();
+
+        }).catch(() => {});
+    }
+
+    function fetchAlertStats24hStats() {
+        // Stats for today/month in Alerts tab
+        const today = getToday();
+        const month = today.slice(0, 7);
+        Promise.all([
+            fetch('/api/get_alerts?date=' + today).then(r => r.json()).catch(() => ({})),
+            fetch('/api/get_alerts?month=' + month).then(r => r.json()).catch(() => ({}))
+        ]).then(([dayData, monthData]) => {
+            if (dayData.alerts) document.getElementById('stat-today').innerText = dayData.alerts.length;
+            if (monthData.alerts) {
+                document.getElementById('stat-month').innerText = monthData.alerts.length;
+                const crit = monthData.alerts.filter(a => a.level >= 12).length;
+                document.getElementById('stat-critical').innerText = crit;
+            }
+        });
+    }
+
+    // AI root cause display (from latest highest-level alert)
+    function updateAIRootCause(alerts) {
+        if (!alerts || alerts.length === 0) return;
+        const top = [...alerts].sort((a, b) => b.level - a.level)[0];
+        const rcEl = document.getElementById('ai-root-cause');
+        const pbEl = document.getElementById('ai-playbook');
+        if (rcEl) rcEl.innerHTML = `<span class="text-slate-200 font-medium">${escapeHTML(top.description)}</span> <span class="text-slate-500">(Agent: ${escapeHTML(top.agent)}, Rule: ${escapeHTML(top.rule_id)})</span>`;
+        if (pbEl) pbEl.innerHTML = `<span class="text-emerald-300 text-[10px]">→ Kiểm tra log chi tiết tại agent <strong>${escapeHTML(top.agent)}</strong>. Level ${top.level} — Xem AI Playbooks để biết SOP ứng cứu.</span>`;
+    }
+
+    function applyLevelFilter() {
+        minLevelFilter = parseInt(document.getElementById('min-level-filter').value || 7);
+        refreshLogStream();
+    }
+
+    function refreshLogStream() {
+        const streamFull = document.getElementById('log-stream-full');
+        if (!streamFull) return;
+        const filtered = allFetchedAlerts.filter(a => a.level >= minLevelFilter);
+        streamFull.innerHTML = filtered.map(buildLogEntry).join('') ||
+            '<div class="log-entry text-slate-600 text-[11px] italic px-4">Chưa có dữ liệu. Nhấn làm mới.</div>';
+    }
+
+    function clearLogStream() {
+        const s = document.getElementById('log-stream-full');
+        if (s) s.innerHTML = '<div class="log-entry text-slate-600 text-[11px] italic px-4">Đã xóa. Nhấn làm mới để tải lại.</div>';
+    }
+
+    // ========================== AI ANALYSIS ==========================
+    function triggerAnalysis() {
+        const btn = document.getElementById('btn-run-ai');
+        const fromDate = document.getElementById('analysis-from-date').value;
+        const toDate   = document.getElementById('analysis-to-date').value;
+        if (!fromDate || !toDate) { showToast('Chọn khoảng thời gian!'); return; }
+
+        btn.disabled = true;
+
+        // Tạo progress bar UI ngay lập tức
+        const progressId = 'ai-progress-' + Date.now();
+        const progressHtml = `
+            <div id="${progressId}" style="margin-top:10px;padding:10px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:10px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <span class="loading-spinner" style="color:#a78bfa"></span>
+                    <span id="${progressId}-msg" style="font-size:12px;color:#c4b5fd;font-family:var(--font-main)">Đang khởi động...</span>
+                    <span id="${progressId}-pct" style="margin-left:auto;font-size:11px;color:#7c3aed;font-weight:700;">0%</span>
+                </div>
+                <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+                    <div id="${progressId}-bar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:3px;transition:width 0.5s ease;width:0%"></div>
+                </div>
+            </div>`;
+        btn.insertAdjacentHTML('afterend', progressHtml);
+        btn.innerHTML = '<span class="loading-spinner mr-2"></span> Đang phân tích...';
+
+        // Gửi request, nhận job_id ngay lập tức
+        fetch('/api/analyze', {method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({from_date: fromDate, to_date: toDate})
+        }).then(r => r.json()).then(data => {
+            if (data.status !== 'queued') {
+                showToast(data.message || 'Lỗi khởi tạo tác vụ.');
+                _resetAnalysisBtn(btn, progressId);
+                return;
+            }
+            // Bắt đầu polling trạng thái
+            _pollAnalysisJob(data.job_id, btn, progressId);
+        }).catch(err => {
+            showToast('Lỗi kết nối: ' + err);
+            _resetAnalysisBtn(btn, progressId);
+        });
+    }
+
+    function _pollAnalysisJob(jobId, btn, progressId) {
+        const interval = setInterval(() => {
+            fetch('/api/analyze_status/' + jobId)
+            .then(r => r.json())
+            .then(job => {
+                // Cập nhật progress bar
+                const bar = document.getElementById(progressId + '-bar');
+                const msg = document.getElementById(progressId + '-msg');
+                const pct = document.getElementById(progressId + '-pct');
+                if (bar) bar.style.width = (job.progress || 0) + '%';
+                if (msg) msg.textContent = job.message || '';
+                if (pct) pct.textContent = (job.progress || 0) + '%';
+
+                if (job.status === 'done') {
+                    clearInterval(interval);
+                    showToast(job.message || 'Báo cáo xuất thành công!', 'success');
+                    if (job.filename) window.open('/download/' + encodeURIComponent(job.filename), '_blank');
+                    fetchSystemInfo();
+                    _resetAnalysisBtn(btn, progressId);
+                    // Dọn job sau 5s
+                    setTimeout(() => fetch('/api/analyze_cleanup', {method:'POST'}), 5000);
+                } else if (job.status === 'error') {
+                    clearInterval(interval);
+                    showToast(job.message || 'Đã xảy ra lỗi phân tích.');
+                    _resetAnalysisBtn(btn, progressId);
+                    setTimeout(() => fetch('/api/analyze_cleanup', {method:'POST'}), 5000);
+                }
+            }).catch(() => { /* ignore poll errors */ });
+        }, 1500);  // poll mỗi 1.5 giây
+    }
+
+    function _resetAnalysisBtn(btn, progressId) {
+        btn.disabled = false;
+        btn.innerHTML = 'Phân tích & Xuất Báo cáo';
+        const prog = document.getElementById(progressId);
+        if (prog) { prog.style.opacity = '0'; setTimeout(() => prog.remove(), 400); }
+    }
+
+
+    // ========================== AI CHAT ==========================
+    function sendChat() {
+        const input = document.getElementById('chat-input');
+        const btn   = document.getElementById('btn-chat');
+        const msg   = input.value.trim();
+        if (!msg) return;
+        const msgs = document.getElementById('chat-messages');
+        msgs.innerHTML += `<div class="chat-bubble chat-user">${escapeHTML(msg)}</div>`;
+        input.value = ''; btn.disabled = true;
+        msgs.innerHTML += `<div class="chat-bubble chat-ai" id="chat-loading"><span class="loading-spinner mr-2"></span>Đang suy nghĩ...</div>`;
+        msgs.scrollTop = msgs.scrollHeight;
+        fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg})})
+        .then(r => r.json()).then(data => {
+            const loading = document.getElementById('chat-loading'); if (loading) loading.remove();
+            msgs.innerHTML += `<div class="chat-bubble chat-ai">${escapeHTML(data.answer)}</div>`;
+            msgs.scrollTop = msgs.scrollHeight; btn.disabled = false;
+        }).catch(err => {
+            const loading = document.getElementById('chat-loading'); if (loading) loading.remove();
+            msgs.innerHTML += `<div class="chat-bubble chat-ai" style="color:#ef4444">Lỗi: ${escapeHTML(err.message)}</div>`;
+            btn.disabled = false;
+        });
+    }
+
+    // ========================== RAG & KQL ==========================
+    async function askRAG() {
+        const input = document.getElementById('rag-input').value.trim();
+        const out   = document.getElementById('rag-output');
+        const btn   = document.getElementById('btn-rag');
+        if (!input) { showToast('Nhập câu hỏi!'); return; }
+        btn.innerHTML = '<span class="loading-spinner mr-2"></span> Đang suy luận...'; btn.disabled = true;
+        out.innerHTML = '<span class="text-slate-400 italic">Đang phân tích...</span>';
+        try {
+            const r = await fetch('/api/rag', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question: input})});
+            const d = await r.json();
+            out.textContent = d.answer;
+        } catch(e) { out.innerHTML = `<span class="text-red-400">Lỗi: ${escapeHTML(e.message)}</span>`; }
+        btn.disabled = false; btn.innerHTML = 'Gửi Yêu Cầu RAG';
+    }
+
+    async function generateQuery() {
+        const input = document.getElementById('query-input').value.trim();
+        const out   = document.getElementById('query-output');
+        const btn   = document.getElementById('btn-query');
+        if (!input) { showToast('Nhập yêu cầu!'); return; }
+        btn.innerHTML = '<span class="loading-spinner mr-2"></span> Đang biên dịch...'; btn.disabled = true;
+        out.innerHTML = '...';
+        try {
+            const r = await fetch('/api/query', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question: input})});
+            const d = await r.json();
+            out.textContent = d.answer;
+        } catch(e) { out.innerHTML = `<span class="text-red-400">Lỗi: ${escapeHTML(e.message)}</span>`; }
+        btn.disabled = false; btn.innerHTML = 'Biên dịch sang KQL/SPL';
+    }
+
+    function copyQueryOutput() {
+        const text = document.getElementById('query-output').textContent;
+        if (!text || text === '...') { showToast('Chưa có lệnh để sao chép.'); return; }
+        navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép lệnh!', 'success')).catch(() => showToast('Không thể sao chép.'));
+    }
+
+    function prefillSplunk() {
+        document.getElementById('query-input').value = 'Tìm tất cả các lần đăng nhập thất bại (Event 4625) trong 24 giờ qua trên Splunk';
+    }
+    function prefillKQL() {
+        document.getElementById('query-input').value = 'Lọc SecurityEvent với EventID 4625 từ địa chỉ IP bên ngoài bằng KQL';
+    }
+
+    // Quick actions from sidebar
+    function quickGenSplunk() {
+        switchTab('siem');
+        setTimeout(() => { document.getElementById('query-input').value = 'Sinh lệnh Splunk SPL để tìm brute-force login trong 1 giờ qua'; generateQuery(); }, 200);
+    }
+    function quickGenKQL() {
+        switchTab('siem');
+        setTimeout(() => { document.getElementById('query-input').value = 'Sinh lệnh Sentinel KQL tìm failed authentication từ IP lạ'; generateQuery(); }, 200);
+    }
+    function quickCopyLast() {
+        if (!allFetchedAlerts.length) { showToast('Chưa có dữ liệu alert.'); return; }
+        const a = allFetchedAlerts[0];
+        const text = `[${a.date} ${a.time_display}] Level ${a.level} | Agent: ${a.agent} | Rule: ${a.rule_id} | ${a.description}`;
+        navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép log cuối!', 'success')).catch(() => showToast('Không thể sao chép.'));
+    }
+
+    // ========================== CALENDAR ==========================
+    let calYear, calMonth, alertDatesMap = {}, calSelectedDate = null;
+
+    function initCalendar() {
+        const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth();
+        loadCalendar();
+    }
+    function loadCalendar() {
+        fetch('/api/alert_dates').then(r => r.json()).then(data => {
+            alertDatesMap = {};
+            (data.dates || []).forEach(d => { alertDatesMap[d.date] = {count:d.count, critical:d.critical, high:d.high}; });
+            renderCalendar();
+        }).catch(() => renderCalendar());
+    }
+    function renderCalendar() {
+        const monthNames = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+        document.getElementById('cal-month-label').innerText = `${monthNames[calMonth]} / ${calYear}`;
+        const grid = document.getElementById('cal-days-grid');
+        grid.innerHTML = '';
+        const firstDay     = new Date(calYear, calMonth, 1).getDay();
+        const daysInMonth  = new Date(calYear, calMonth+1, 0).getDate();
+        const today        = getToday();
+        for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="cal-day empty">·</div>`;
+        for (let d = 1; d <= daysInMonth; d++) {
+            const ds   = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const info = alertDatesMap[ds];
+            let cls    = 'cal-day';
+            if (ds === today)           cls += ' today';
+            if (ds === calSelectedDate) cls += ' selected';
+            if (info) { cls += info.critical > 0 ? ' has-critical' : ' has-alerts'; }
+            const badge = info ? `<span class="cal-badge">${info.count}</span>` : '';
+            grid.innerHTML += `<div class="${cls}" onclick="selectCalDate('${ds}')">${d}${badge}</div>`;
+        }
+    }
+    function selectCalDate(ds) { calSelectedDate = ds; renderCalendar(); loadAlertsByDate(ds); }
+    function calPrevMonth()    { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } loadCalendar(); }
+    function calNextMonth()    { calMonth++; if (calMonth > 11) { calMonth = 0;  calYear++; } loadCalendar(); }
+
+    // ========================== ALERTS TAB ==========================
+    let _allAlertsData = [];
+    let _sessionView   = false;
+
+    function initAlerts() {
+        initCalendar();
+        loadAlertsByDate(getToday());
+    }
+
+    function loadAlertsByDate(date) {
+        document.getElementById('selected-date-label').innerText = formatDateDisplay(date);
+        document.getElementById('full-alerts-container').innerHTML =
+            '<div class="text-center py-6 text-slate-400 text-sm"><span class="loading-spinner text-blue-500 mr-2"></span>Đang tải...</div>';
+        fetch('/api/get_alerts?date=' + date).then(r => r.json()).then(data => {
+            if (data.status === 'success') { _allAlertsData = data.alerts || []; renderAlertsTab(data.alerts_grouped); }
+        }).catch(() => { document.getElementById('full-alerts-container').innerHTML = '<p class="text-slate-400 text-center py-4 text-sm">Lỗi tải dữ liệu.</p>'; });
+    }
+
+    function loadMonthAlerts() {
+        const ms = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+        document.getElementById('selected-date-label').innerText = `Tháng ${calMonth+1}/${calYear}`;
+        document.getElementById('full-alerts-container').innerHTML =
+            '<div class="text-center py-6 text-slate-400 text-sm"><span class="loading-spinner text-blue-500 mr-2"></span>Đang tải...</div>';
+        fetch('/api/get_alerts?month=' + ms).then(r => r.json()).then(data => {
+            if (data.status === 'success') { _allAlertsData = data.alerts || []; renderAlertsTab(data.alerts_grouped); }
+        }).catch(() => {});
+    }
+
+    function toggleSessionView() {
+        _sessionView = !_sessionView;
+        const btn = document.getElementById('btn-session-view');
+        btn.innerText = _sessionView ? 'Xem Danh sách' : 'Xem theo Phiên';
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const severity = document.getElementById('filter-severity').value;
+        const evalFilter = document.getElementById('filter-eval').value;
+        const keyword  = document.getElementById('filter-keyword').value.toLowerCase().trim();
+        let filtered = _allAlertsData.slice();
+        if (severity) filtered = filtered.filter(a => a.level >= parseInt(severity));
+        if (evalFilter === 'null')  filtered = filtered.filter(a => !a.evaluation);
+        else if (evalFilter)        filtered = filtered.filter(a => a.evaluation === evalFilter);
+        if (keyword) filtered = filtered.filter(a =>
+            (a.agent||'').toLowerCase().includes(keyword) ||
+            (a.description||'').toLowerCase().includes(keyword) ||
+            (a.rule_id||'').toLowerCase().includes(keyword) ||
+            (a.rule_groups||'').toLowerCase().includes(keyword)
+        );
+        // Re-group
+        const grouped = {};
+        filtered.forEach(a => {
+            const d = a.date;
+            if (!grouped[d]) grouped[d] = [];
+            grouped[d].push(a);
+        });
+        renderAlertsTab(grouped, _sessionView);
+    }
+
+    function resetFilters() {
+        document.getElementById('filter-severity').value = '';
+        document.getElementById('filter-eval').value = '';
+        document.getElementById('filter-keyword').value = '';
+        applyFilters();
+    }
+
+    // Group alerts into sessions (cluster within 30 min window)
+    function groupIntoSessions(alerts) {
+        if (!alerts || alerts.length === 0) return [];
+        const sorted = [...alerts].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const sessions = [];
+        let currentSession = [sorted[0]];
+        let sessionStart = new Date(sorted[0].timestamp);
+        for (let i = 1; i < sorted.length; i++) {
+            const t = new Date(sorted[i].timestamp);
+            if ((t - sessionStart) <= 30 * 60 * 1000) {
+                currentSession.push(sorted[i]);
+            } else {
+                sessions.push(currentSession);
+                currentSession = [sorted[i]];
+                sessionStart = t;
+            }
+        }
+        sessions.push(currentSession);
+        return sessions.reverse(); // latest first
+    }
+
+    function renderAlertsTab(grouped, useSessionView) {
+        const sortedDates = Object.keys(grouped || {}).sort().reverse();
+        let html = '', totalCount = 0;
+
+        sortedDates.forEach(dateKey => {
+            const alerts = grouped[dateKey];
+            totalCount += alerts.length;
+
+            html += `<div class="date-group-header"><span class="text-white font-bold text-sm">${formatDateDisplay(dateKey)}</span>
+                <span class="text-slate-400 text-xs ml-2">${alerts.length} cảnh báo</span></div>`;
+
+            if (useSessionView) {
+                // Session grouping
+                const sessions = groupIntoSessions(alerts);
+                sessions.forEach((session, si) => {
+                    const maxLevel = Math.max(...session.map(a => a.level));
+                    const sessionColor = getLevelColor(maxLevel);
+                    const sessionLabel = getLevelLabel(maxLevel);
+                    const startTime = session[session.length-1].time_display || '';
+                    const endTime   = session[0].time_display || '';
+                    html += `<div class="session-header" style="border-left-color:${sessionColor}">
+                        <span class="font-mono text-xs font-bold mr-2" style="color:${sessionColor}">[PHIÊN #${si+1}]</span>
+                        <span class="text-white font-bold text-xs">${startTime} → ${endTime}</span>
+                        <span class="ml-auto text-xs font-bold" style="color:${sessionColor}">${session.length} sự kiện · ${sessionLabel}</span>
+                    </div>`;
+                    session.forEach((item, idx) => { html += buildAlertCard(item, `${dateKey}-s${si}-${idx}`, dateKey); });
+                });
+            } else {
+                alerts.forEach((item, idx) => { html += buildAlertCard(item, `${dateKey}-${idx}`, dateKey); });
+            }
+        });
+
+        if (!html) html = `<div class="text-center py-10 text-slate-400">
+            <div class="text-xs font-mono font-bold text-slate-400 border border-slate-700/50 rounded px-2.5 py-1 inline-block mb-2">[TRỐNG]</div><br>
+            <span class="text-sm">Không có cảnh báo trong khoảng thời gian này.</span>
+        </div>`;
+
+        document.getElementById('full-alerts-container').innerHTML = html;
+        document.getElementById('selected-alert-count').innerText = totalCount > 0 ? `(${totalCount} cảnh báo)` : '';
+    }
+
+    function buildAlertCard(item, uid, dateKey) {
+        const badge = getLevelBadge(item.level);
+        const label = getLevelLabel(item.level);
+        const color = getLevelColor(item.level);
+        const t          = escapeHTML(item.time_display || '');
+        const a          = escapeHTML(item.agent);
+        const desc       = escapeHTML(item.description);
+        const l          = String(item.level);
+        const aid        = escapeHTML(item.alert_id || '');
+        const ruleId     = escapeHTML(item.rule_id || 'N/A');
+        const ruleGroups = escapeHTML(item.rule_groups || 'N/A');
+        const fullLog    = escapeHTML(item.full_log || 'Không có dữ liệu');
+        const evalTP = item.evaluation === 'true_positive'  ? 'active' : '';
+        const evalFP = item.evaluation === 'false_positive' ? 'active' : '';
+        const evalBadge = item.evaluation === 'true_positive'
+            ? '<span class="text-[9px] px-2 py-0.5 rounded bg-emerald-500/12 text-emerald-400 font-bold border border-emerald-500/20">TRUE POSITIVE</span>'
+            : item.evaluation === 'false_positive'
+            ? '<span class="text-[9px] px-2 py-0.5 rounded bg-red-500/12 text-red-400 font-bold border border-red-500/20">FALSE POSITIVE</span>'
+            : '';
+
+        return `<div class="glass-card alert-card-expandable p-4 mb-2" style="border-left:3px solid ${color}">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2" onclick="toggleDetail('${uid}')">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="level-badge ${badge}">${label}</span>
+                        <span class="text-[10.5px] text-slate-400 font-mono">${escapeHTML(dateKey)} ${t}</span>
+                        ${evalBadge}
+                    </div>
+                    <h4 class="font-bold text-white text-xs">${desc}</h4>
+                    <div class="flex items-center gap-3 mt-1 text-[10.5px] text-slate-400">
+                        <span>Agent: <span class="text-blue-400 font-bold">${a}</span></span>
+                        <span>Rule: <span class="text-purple-400 font-mono">${ruleId}</span></span>
+                        <span class="hidden sm:inline">Groups: <span class="text-slate-300">${ruleGroups}</span></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="eval-container flex items-center gap-1" onclick="event.stopPropagation()">
+                        <button onclick="evaluateAlert('${aid}','true_positive',this)" class="eval-btn eval-btn-tp ${evalTP}">✓TP</button>
+                        <button onclick="evaluateAlert('${aid}','false_positive',this)" class="eval-btn eval-btn-fp ${evalFP}">✗FP</button>
+                    </div>
+                    <span class="text-slate-400 text-xs font-semibold ml-1">Chi tiết &#9662;</span>
+                </div>
+            </div>
+            <div id="detail-${uid}" class="alert-detail">
+                <div class="mt-3 pt-3 border-t border-white/5 space-y-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div class="glass p-2 rounded-lg"><span class="text-[8.5px] font-bold text-slate-400 uppercase">Rule ID</span><p class="text-xs text-purple-400 font-mono mt-0.5">${ruleId}</p></div>
+                        <div class="glass p-2 rounded-lg"><span class="text-[8.5px] font-bold text-slate-400 uppercase">Level</span><p class="text-xs font-bold mt-0.5" style="color:${color}">Lv.${l} (${label})</p></div>
+                        <div class="glass p-2 rounded-lg"><span class="text-[8.5px] font-bold text-slate-400 uppercase">Groups</span><p class="text-xs text-slate-300 mt-0.5">${ruleGroups}</p></div>
+                        <div class="glass p-2 rounded-lg"><span class="text-[8.5px] font-bold text-slate-400 uppercase">Timestamp</span><p class="text-xs text-slate-300 font-mono mt-0.5">${escapeHTML(dateKey)} ${t}</p></div>
+                    </div>
+                    <div class="glass p-3 rounded-lg">
+                        <span class="text-[8.5px] font-bold text-slate-400 uppercase">Full Log / Raw Data</span>
+                        <pre class="text-[10.5px] text-slate-300 mt-1.5 whitespace-pre-wrap font-mono bg-black/30 p-2 rounded max-h-40 overflow-y-auto">${fullLog}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function toggleDetail(id) {
+        const el = document.getElementById('detail-' + id);
+        if (el) el.classList.toggle('open');
+    }
+
+    // ========================== EVALUATION ==========================
+    function evaluateAlert(alertId, evaluation, btnEl) {
+        const isActive = btnEl.classList.contains('active');
+        fetch('/api/evaluate_alert', {method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({alert_id: alertId, evaluation: isActive ? '' : evaluation})
+        }).then(r => r.json()).then(data => {
+            if (data.status === 'success') {
+                const c = btnEl.closest('.eval-container');
+                c.querySelectorAll('.eval-btn').forEach(b => b.classList.remove('active'));
+                if (!isActive) btnEl.classList.add('active');
+                if (data.stats) {
+                    document.getElementById('tp-rate').innerText = data.stats.tp_rate + '%';
+                    document.getElementById('stat-tp').innerText = data.stats.tp_rate + '%';
+                    if (data.stats.total_evaluated > 0) {
+                        document.getElementById('tp-detail').innerText = `TP:${data.stats.true_positive}|FP:${data.stats.false_positive}|Chưa:${data.stats.not_evaluated}`;
+                        document.getElementById('eval-summary-text').innerText = `TP:${data.stats.true_positive}/FP:${data.stats.false_positive} (${data.stats.tp_rate}%)`;
+                    }
+                }
+                showToast(data.message, 'success');
+            }
+        }).catch(err => showToast('Lỗi: ' + err));
+    }
+
+    // ========================== VULNERABILITIES (CVE) ==========================
+    let cachedVulns = [];
+
+    function loadVulnerabilities() {
+        const sev = document.getElementById('vuln-severity-filter').value;
+        const tbody = document.getElementById('vulns-table-body');
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 italic"><span class="loading-spinner mr-2"></span> Đang tải dữ liệu CVE từ Wazuh...</td></tr>`;
+
+        fetch('/api/v1/soc/vulns?severity=' + encodeURIComponent(sev))
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    cachedVulns = data.vulnerabilities || [];
+                    const stats = data.stats || {};
+                    document.getElementById('vuln-total-count').innerText = stats.total || 0;
+                    document.getElementById('vuln-critical-count').innerText = stats.critical || 0;
+                    document.getElementById('vuln-high-count').innerText = stats.high || 0;
+                    document.getElementById('vuln-med-count').innerText = (stats.medium || 0) + (stats.low || 0);
+
+                    renderVulnsTable(cachedVulns);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-red-400">Không thể tải dữ liệu lỗ hổng bảo mật.</td></tr>`;
+                }
+            })
+            .catch(err => {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-red-400">Lỗi kết nối: ${escapeHTML(err)}</td></tr>`;
+            });
+    }
+
+    function renderVulnsTable(list) {
+        const tbody = document.getElementById('vulns-table-body');
+        if (!list || list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Không tìm thấy lỗ hổng phù hợp với bộ lọc.</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        list.forEach(v => {
+            const sev = v.severity || 'Medium';
+            let badgeClass = 'level-medium';
+            if (sev.toLowerCase() === 'critical') badgeClass = 'level-critical';
+            else if (sev.toLowerCase() === 'high') badgeClass = 'level-high';
+            else if (sev.toLowerCase() === 'low') badgeClass = 'level-low';
+
+            const agents = (v.affected_agents || []).map(a => `<span class="bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-mono">${escapeHTML(a)}</span>`).join(' ');
+
+            html += `<tr class="hover:bg-white/[0.02] transition-colors">
+                <td class="py-3 px-4">
+                    <div class="font-bold text-white flex items-center gap-1.5">
+                        <span class="text-blue-400 font-mono">${escapeHTML(v.cve_id)}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 truncate max-w-xs mt-0.5" title="${escapeHTML(v.title || '')}">${escapeHTML(v.title || '')}</div>
+                </td>
+                <td class="py-3 px-3 text-center">
+                    <span class="level-badge ${badgeClass}">${escapeHTML(sev.toUpperCase())}</span>
+                </td>
+                <td class="py-3 px-3 text-center font-mono font-bold ${v.cvss >= 9.0 ? 'text-red-400' : (v.cvss >= 7.0 ? 'text-amber-400' : 'text-blue-400')}">
+                    ${v.cvss}
+                </td>
+                <td class="py-3 px-4">
+                    <div class="font-mono text-slate-200 font-semibold">${escapeHTML(v.package_name)}</div>
+                    <div class="text-[10px] text-slate-500 font-mono">${escapeHTML(v.package_version || 'N/A')}</div>
+                </td>
+                <td class="py-3 px-4 text-[11px]">${agents || 'N/A'}</td>
+                <td class="py-3 px-3 text-[11px] font-mono text-slate-400">${escapeHTML(v.published || 'N/A')}</td>
+                <td class="py-3 px-4 text-center">
+                    <button onclick='generateRemediationPlan(${JSON.stringify(v.cve_id)}, ${JSON.stringify(v.severity)}, ${v.cvss}, ${JSON.stringify(v.package_name)}, ${JSON.stringify(v.title)})' class="btn-ghost text-[11px] py-1 px-2.5">
+                        ⚡ AI Kế hoạch
+                    </button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function filterVulnerabilities() {
+        const query = (document.getElementById('vuln-search-input').value || '').toLowerCase();
+        if (!query) {
+            renderVulnsTable(cachedVulns);
+            return;
+        }
+        const filtered = cachedVulns.filter(v => 
+            (v.cve_id || '').toLowerCase().includes(query) ||
+            (v.package_name || '').toLowerCase().includes(query) ||
+            (v.title || '').toLowerCase().includes(query)
+        );
+        renderVulnsTable(filtered);
+    }
+
+    function generateRemediationPlan(cveId, severity, cvss, pkg, title) {
+        const modal = document.getElementById('cve-remediation-modal');
+        modal.classList.remove('hidden');
+        document.getElementById('modal-cve-title').innerText = `Kế hoạch Khắc phục: ${cveId}`;
+        document.getElementById('modal-cve-meta').innerHTML = `
+            <span><b>Gói:</b> ${escapeHTML(pkg)}</span> · 
+            <span><b>Mức độ:</b> ${escapeHTML(severity)} (CVSS: ${cvss})</span>
+        `;
+        document.getElementById('modal-cve-content').innerHTML = `
+            <div class="py-8 text-center text-slate-400">
+                <span class="loading-spinner mr-2"></span> Local LLM đang phân tích và lập kế hoạch ứng cứu...
+            </div>
+        `;
+
+        fetch('/api/v1/soc/cve/remediation', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({cve_id: cveId, severity: severity, cvss: cvss, package: pkg, title: title})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('modal-cve-content').innerHTML = data.remediation_plan;
+            } else {
+                document.getElementById('modal-cve-content').innerHTML = `<span class="text-red-400">Lỗi khi gọi AI: ${escapeHTML(data.message || 'Không có phản hồi')}</span>`;
+            }
+        })
+        .catch(err => {
+            document.getElementById('modal-cve-content').innerHTML = `<span class="text-red-400">Lỗi kết nối tới mô hình AI: ${escapeHTML(err)}</span>`;
+        });
+    }
+
+    function closeRemediationModal() {
+        document.getElementById('cve-remediation-modal').classList.add('hidden');
+    }
+
+    // ========================== PIPELINE CORRELATOR STATUS ==========================
+    function updatePipelineStatus() {
+        fetch('/api/pipeline_status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const badge = document.getElementById('pipeline-correlator-badge');
+                    const text = document.getElementById('pipeline-correlator-text');
+                    if (!badge || !text) return;
+                    const grouping = data.grouping || [];
+                    if (grouping.length > 0) {
+                        badge.className = 'font-mono text-[11px] text-amber-400 bg-amber-500/15 px-2.5 py-1 rounded border border-amber-500/30 font-bold';
+                        badge.innerText = `${grouping.length} sự cố đang gom`;
+                        const top = grouping[0];
+                        text.innerText = `Đang gom ${top.alert_count} cảnh báo từ [${top.key}] (còn ${top.seconds_left}s)`;
+                    } else {
+                        badge.className = 'font-mono text-[11px] text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded border border-blue-500/20 font-bold';
+                        badge.innerText = `0 sự cố đang gom`;
+                        text.innerText = `Đang giám sát gom nhóm theo IP/Host (Debounce: 20s)`;
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+
+    // ========================== INIT ==========================
+    window.onload = function() {
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+
+        // Date inputs defaults
+        document.getElementById('analysis-from-date').value = getToday();
+        document.getElementById('analysis-to-date').value   = getToday();
+
+        // Clock
+        setInterval(() => {
+            const n = new Date();
+            document.getElementById('real-time-clock').innerText =
+                n.toLocaleTimeString('vi-VN', {hour12:false}) + ' · ' + n.toLocaleDateString('vi-VN');
+        }, 1000);
+
+        // Initial data
+        refreshData();
+        fetchSystemInfo();
+        fetchAlertStats();
+        fetchEvalStats();
+        updatePipelineStatus();
+
+        // Auto-sync
+        setInterval(() => refreshData(true), 12000);
+        setInterval(() => fetchAlertStats(), 60000);
+        setInterval(() => fetchEvalStats(), 15000);
+        setInterval(() => loadCalendar(), 120000);
+        setInterval(() => updatePipelineStatus(), 5000);
+    };
+    </script>
+</body>
+</html>
